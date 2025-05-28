@@ -10,7 +10,7 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
  && apk add --no-cache \
       nginx supervisor curl bash git \
       libpng libpng-dev libxml2-dev oniguruma-dev icu-dev libzip-dev \
-      openldap-dev bzip2-dev mariadb-dev          \
+      openldap-dev bzip2-dev mariadb-dev  \
       libjpeg-turbo-dev libwebp-dev freetype-dev
 
 ############################
@@ -18,8 +18,7 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
 ############################
 RUN docker-php-ext-configure mysqli --with-mysqli=mysqlnd \
  && docker-php-ext-install -j"$(nproc)" \
-        mysqli pdo_mysql intl xml gd mbstring zip opcache curl \
-        exif ldap bz2
+      mysqli pdo_mysql intl xml gd mbstring zip opcache curl exif ldap bz2  
 
 ############################
 # 3. PHP-FPM (config mínima)
