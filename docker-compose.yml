@@ -1,39 +1,48 @@
-# docker-compose.yml
-#version: \"3.9\"
+version: "3.8"
 
 services:
-  glpi-app:
-    build: ./glpi-app
-    container_name: glpi-app
-    ports:
-      - "8888:80"          # host:container
-    volumes:
-      - glpi_files:/var/www/html/files
-    depends_on:
-      - glpi-db
-    environment:
-      - TZ=America/Bogota
-
   glpi-db:
-    build: ./glpi-db
+    image: mariadb:lts
     container_name: glpi-db
     restart: unless-stopped
-    env_file: .env
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER:     ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - glpi_db_data:/var/lib/mysql
 
-  glpi-bot:
-    build: ./glpi-bot
-    container_name: glpi-bot
-    env_file: .env
+  glpi-app:
+    build: .
+    container_name: glpi-app
+    depends_on:
+      - glpi-db
     ports:
-      - "8000:8000"
+      - "8080:80"           # http://localhost:8080
     volumes:
-      - glpi_bot_logs:/app/logs
+      - glpi_files:/var/www/html/glpi/files
+    environment:
+      GLPI_DB_HOST:     glpi-db
+      GLPI_DB_NAME:     ${MYSQL_DATABASE}
+      GLPI_DB_USER:     ${MYSQL_USER}
+      GLPI_DB_PASSWORD: ${MYSQL_PASSWORD}
+
+  glpi-bot:
+    build:
+      context: ./glpi-bot          # directorio donde tienes el Dockerfile del bot
+    container_name: glpi-bot
+    restart: unless-stopped
     depends_on:
       - glpi-app
+    environment:
+      BOT_TOKEN:        ${BOT_TOKEN}
+      GLPI_API_URL:     http://glpi-app/api
+      GLPI_APP_TOKEN:   ${GLPI_APP_TOKEN}
+      GLPI_USER_TOKEN:  ${GLPI_USER_TOKEN}
+    ports:
+      - "8000:8000"      # FastAPI / Webhook opcional
 
 volumes:
-  glpi_files:
   glpi_db_data:
-  glpi_bot_logs:
+  glpi_files:
