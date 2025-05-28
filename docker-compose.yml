@@ -1,4 +1,4 @@
-version: "3.8"
+#version: "3.8"
 
 services:
   glpi-db:
@@ -14,7 +14,9 @@ services:
       - glpi_db_data:/var/lib/mysql
 
   glpi-app:
-    build: .
+    build:
+      context: ./glpi-app        # carpeta donde está el código
+      dockerfile: Dockerfile     # nombre del Dockerfile (por defecto)
     container_name: glpi-app
     depends_on:
       - glpi-db
