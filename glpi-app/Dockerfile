@@ -6,24 +6,20 @@ FROM php:8.2-fpm-alpine
 ############################
 # 1. Dependencias de sistema
 ############################
-RUN apk add --no-cache --virtual .build-deps \
-        $PHPIZE_DEPS \
-    && apk add --no-cache \
-        nginx supervisor curl bash git \
-        libpng libpng-dev libxml2-dev oniguruma-dev icu-dev libzip-dev \
-        openldap-dev bzip2-dev mariadb-dev \          
-        # ← AÑADIDO mariadb-dev
-        # libs extra por si quieres futuras extensiones
-        libjpeg-turbo-dev libwebp-dev freetype-dev
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+ && apk add --no-cache \
+      nginx supervisor curl bash git \
+      libpng libpng-dev libxml2-dev oniguruma-dev icu-dev libzip-dev \
+      openldap-dev bzip2-dev mariadb-dev          \
+      libjpeg-turbo-dev libwebp-dev freetype-dev
 
 ############################
 # 2. Extensiones de PHP
 ############################
-# Compilamos mysqli con mysqlnd y el resto de módulos que pide GLPI
 RUN docker-php-ext-configure mysqli --with-mysqli=mysqlnd \
  && docker-php-ext-install -j"$(nproc)" \
-      pdo_mysql mysqli intl xml gd mbstring zip opcache curl \
-      exif ldap bz2
+        mysqli pdo_mysql intl xml gd mbstring zip opcache curl \
+        exif ldap bz2
 
 ############################
 # 3. PHP-FPM (config mínima)
