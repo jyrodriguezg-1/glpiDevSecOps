@@ -19,6 +19,7 @@ RUN apk add --no-cache --virtual .build-deps \
 ############################
 # ───────── bloque PHP-FPM corregido ─────────
 RUN printf "daemonize = no\ninclude = /usr/local/etc/php-fpm.d/*.conf\n" \
+           "error_log = /usr/local/var/log/php-fpm.log\n" \ 
         > /usr/local/etc/php-fpm.conf \
  && mkdir -p /usr/local/etc/php-fpm.d \
  && printf "[www]\nlisten = 9000\nuser = www-data\ngroup = www-data\npm = dynamic\npm.max_children = 5\npm.start_servers = 2\npm.min_spare_servers = 1\npm.max_spare_servers = 3\n" \
