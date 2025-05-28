@@ -24,16 +24,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       php8.2-curl php8.2-bz2 php8.2-ldap php8.2-exif php8.2-opcache \
       && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-###############################################################################
-# 3. PHP-FPM – configuración mínima
-###############################################################################
-RUN mkdir -p /usr/local/var/log \
- && cat > /etc/php/8.2/fpm/php-fpm.conf <<'EOF'
-[global]
-daemonize = no
-include = /etc/php/8.2/fpm/pool.d/*.conf
-error_log = /proc/self/fd/2
-EOF
+############################
+# 3. PHP-FPM (config mínima)
+############################
+RUN printf "%s\n" \
+"[global]" \
+"daemonize = no" \
+"include = /usr/local/etc/php-fpm.d/*.conf" \
+"error_log = /proc/self/fd/2" \
+> /usr/local/etc/php-fpm.conf
 
 # Ajustamos el pool www (sobrescribimos el que viene por defecto)
 RUN cat > /etc/php/8.2/fpm/pool.d/www.conf <<'EOF'
