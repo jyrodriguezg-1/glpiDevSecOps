@@ -1,0 +1,85 @@
+# .github/workflows/ci-cd.yml
+name: CI/CD – Build, Push & Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_DATE: ${{ github.event.head_commit.timestamp | date('YYYYMMDD') }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # ─────────────────────────────────────────
+      # 1. Login a Docker Hub
+      # ─────────────────────────────────────────
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ─────────────────────────────────────────
+      # 2. Construir y enviar cada imagen
+      # ─────────────────────────────────────────
+      - name: Build & push glpi-app
+        uses: docker/build-push-action@v5
+        with:
+          context: ./glpi-app
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-app:${{ env.IMAGE_DATE }}
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-app:latest
+
+      - name: Build & push glpi-db
+        uses: docker/build-push-action@v5
+        with:
+          context: ./glpi-db
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-db:${{ env.IMAGE_DATE }}
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-db:latest
+
+      - name: Build & push glpi-bot
+        uses: docker/build-push-action@v5
+        with:
+          context: ./glpi-bot
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot:${{ env.IMAGE_DATE }}
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # ─────────────────────────────────────────
+      # 3. Autenticación GCP
+      # ─────────────────────────────────────────
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          install_components: 'gcloud'
+
+      - name: Docker compose pull & up en VM
+        run: |
+          gcloud compute ssh ${{ secrets.GCP_INSTANCE }} \
+            --zone=${{ secrets.GCP_ZONE }} \
+            --command="
+              cd ~/glpiDevSecOps || exit 1
+              git pull
+              cp .env.prod .env 2>/dev/null || true
+              docker compose pull
+              docker compose up -d --remove-orphans
+            "

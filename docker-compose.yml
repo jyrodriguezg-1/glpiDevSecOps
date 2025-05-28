@@ -1,0 +1,39 @@
+# docker-compose.yml
+#version: \"3.9\"
+
+services:
+  glpi-app:
+    build: ./glpi-app
+    container_name: glpi-app
+    ports:
+      - "8888:80"          # host:container
+    volumes:
+      - glpi_files:/var/www/html/files
+    depends_on:
+      - glpi-db
+    environment:
+      - TZ=America/Bogota
+
+  glpi-db:
+    build: ./glpi-db
+    container_name: glpi-db
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - glpi_db_data:/var/lib/mysql
+
+  glpi-bot:
+    build: ./glpi-bot
+    container_name: glpi-bot
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - glpi_bot_logs:/app/logs
+    depends_on:
+      - glpi-app
+
+volumes:
+  glpi_files:
+  glpi_db_data:
+  glpi_bot_logs:
