@@ -17,13 +17,14 @@ RUN apk add --no-cache --virtual .build-deps \
 ############################
 # 2. PHP-FPM – config mínima
 ############################
-RUN mkdir -p /usr/local/etc/php-fpm.d \
- && echo "[global]\ndaemonize = no" > /usr/local/etc/php-fpm.conf \
+RUN echo "daemonize = no" > /usr/local/etc/php-fpm.conf \
+ && mkdir -p /usr/local/etc/php-fpm.d \
  && echo "[www]\nlisten = 9000\nuser = www-data\ngroup = www-data\npm = dynamic\npm.max_children = 5\npm.start_servers = 2\npm.min_spare_servers = 1\npm.max_spare_servers = 3" \
-    > /usr/local/etc/php-fpm.d/www.conf \
+      > /usr/local/etc/php-fpm.d/www.conf \
  && mkdir -p /usr/local/var/log \
  && touch /usr/local/var/log/php-fpm.log \
  && chown -R www-data:www-data /usr/local/var/log/php-fpm.log
+
 
 ############################
 # 3. GLPI – descarga y despliegue
