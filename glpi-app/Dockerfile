@@ -24,17 +24,19 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
       mysqli pdo_mysql intl xml gd mbstring zip opcache curl exif ldap bz2
 
 ############################
-# 3. PHP-FPM configuración mínima
+# 3. PHP-FPM (config mínima)
 ############################
 RUN { \
+      echo "[global]"; \
       echo "daemonize = no"; \
       echo "include = /usr/local/etc/php-fpm.d/*.conf"; \
       echo "error_log = /usr/local/var/log/php-fpm.log"; \
     } > /usr/local/etc/php-fpm.conf \
- && mkdir -p /usr/local/var/log /usr/local/etc/php-fpm.d \
+ && mkdir -p /usr/local/etc/php-fpm.d \
  && printf "[www]\nlisten = 9000\nuser = www-data\ngroup = www-data\npm = dynamic\n" \
       > /usr/local/etc/php-fpm.d/www.conf \
- && echo "session.cookie_httponly = On" > /usr/local/etc/php/conf.d/security.ini
+ && mkdir -p /usr/local/var/log \
+ && chown -R www-data:www-data /usr/local/var/log
 
 ############################
 # 4. Descarga e instalación de GLPI
