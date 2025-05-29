@@ -23,6 +23,9 @@ RUN apt-get update && \
         php8.2-intl php8.2-xml php8.2-gd php8.2-mbstring php8.2-zip \
         php8.2-curl php8.2-bz2 php8.2-ldap php8.2-exif php8.2-opcache && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+    # Creamos el archivo con las directivas de seguridad
+RUN printf "session.cookie_httponly = 1\nsession.cookie_secure = 1\n" \
+      > /etc/php/8.2/fpm/conf.d/90-security.ini                 ### ← añadido
 
 ###############################################################################
 # 2 ▪︎ PHP-FPM – configuración mínima (sin CR/LF ni BOM)
@@ -51,7 +54,7 @@ EOF
 ###############################################################################
 # 3 ▪︎ Nginx – eliminar sitio por defecto y usar tu vhost GLPI
 ###############################################################################
-RUN rm -f /etc/nginx/sites-enabled/default
+RUN rm -r /etc/nginx/sites-enabled/default
 # tu glpi.conf se copiará a /etc/nginx/conf.d/ por la instrucción COPY más abajo
 
 # directorios que nginx necesita escribir
@@ -69,6 +72,7 @@ RUN mkdir -p /var/www/html/glpi && \
 ###############################################################################
 # 5 ▪︎ Copiar configuraciones  (👇 estas son tus archivos existentes)
 ###############################################################################
+#RUN mkdir -p /run/php
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY glpi.ini         /etc/supervisor/conf.d/glpi.ini
 COPY glpi.conf        /etc/nginx/conf.d/glpi.conf

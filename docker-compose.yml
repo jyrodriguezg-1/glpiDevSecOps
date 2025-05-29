@@ -24,6 +24,9 @@ services:
       - "8080:80"           # http://localhost:8080
     volumes:
       - glpi_files:/var/www/html/glpi/files
+      - glpi_public:/var/www/html/glpi/public        ### ← nuevo volumen para /public
+      - ./glpi-app/glpi.conf:/etc/nginx/conf.d/glpi.conf:ro ### ← monta tu glpi.conf endurecido
+      
     environment:
       GLPI_DB_HOST:     glpi-db
       GLPI_DB_NAME:     ${MYSQL_DATABASE}
@@ -48,3 +51,4 @@ services:
 volumes:
   glpi_db_data:
   glpi_files:
+  glpi_public:    
