@@ -67,7 +67,14 @@ RUN mkdir -p /var/www/html/glpi && \
     wget -q https://github.com/glpi-project/glpi/releases/download/${GLPI_VERSION}/glpi-${GLPI_VERSION}.tgz -O /tmp/glpi.tgz && \
     tar -xzf /tmp/glpi.tgz -C /var/www/html/glpi --strip-components=1 && \
     rm /tmp/glpi.tgz && \
-    chown -R www-data:www-data /var/www/html/glpi
+    chown -R www-data:www-data /var/www/html/glpi && \
+    chown -R www-data:www-data /var/www/html/glpi/public && \
+    chmod -R 755 /var/www/html/glpi && \
+    chmod -R 775 /var/www/html/glpi/files /var/www/html/glpi/config /var/www/html/glpi/marketplace /var/www/html/glpi/plugins && \
+    chown -R www-data:www-data /var/www/html/glpi && \
+    chmod -R 755 /var/www/html/glpi
+    #rm -f /var/www/html/glpi/install/install.php && \    
+    #chown -R www-data:www-data /var/www/html/glpi
 
 ###############################################################################
 # 5 ▪︎ Copiar configuraciones  (👇 estas son tus archivos existentes)
