@@ -3,7 +3,7 @@ name: CI/CD – Build, Push & Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 env:
   REGISTRY: docker.io
