@@ -12,7 +12,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - glpi_db_data:/var/lib/mysql
-
+  #commit de pruebas 
   glpi-app:
     build:
       context: ./glpi-app        # carpeta donde está el código
