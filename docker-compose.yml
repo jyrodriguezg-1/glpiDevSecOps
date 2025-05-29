@@ -3,7 +3,7 @@
 services:
   glpi-db:
     image: mariadb:lts
-    container_name: glpi-db
+    container_name: glpi-dba
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -19,9 +19,9 @@ services:
       dockerfile: Dockerfile     # nombre del Dockerfile (por defecto)
     container_name: glpi-app
     depends_on:
-      - glpi-db
+      - glpi-dba
     ports:
-      - "80:80"           # http://localhost:8080
+      - "8080:80"           # http://localhost:8080
     volumes:
       - glpi_files:/var/www/html/glpi/files
      # - glpi_public:/var/www/html/glpi/public        ### ← nuevo volumen para /public
