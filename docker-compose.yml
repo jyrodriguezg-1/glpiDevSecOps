@@ -1,7 +1,7 @@
 #version: "3.8"
 
 services:
-  glpi-db:
+  maria-db:
     image: mariadb:lts
     container_name: maria-db
     restart: unless-stopped
