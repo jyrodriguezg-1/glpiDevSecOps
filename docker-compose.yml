@@ -1,49 +1,42 @@
-# docker-compose.yml
 version: "3.8"
 
 services:
   glpi-db:
-    image: docker.io/${DOCKERHUB_USERNAME}/glpi-db:latest
+    image: ${REGISTRY:-docker.io}/${IMAGE_DB:-youruser/glpi-db}:latest
     container_name: glpi-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER:     ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE:     ${MYSQL_DATABASE}
+      MYSQL_USER:         ${MYSQL_USER}
+      MYSQL_PASSWORD:     ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - glpi_db_data:/var/lib/mysql
 
   glpi-app:
-    image: docker.io/${DOCKERHUB_USERNAME}/glpi-app:latest
+    image: ${REGISTRY:-docker.io}/${IMAGE_APP:-youruser/glpi-app}:latest
     container_name: glpi-app
+    restart: unless-stopped
     depends_on:
       - glpi-db
     ports:
-      - "8080:80"           # http://localhost:8080 (o en tu VM:80 si lo reenvías así)
+      - "8080:80"
+    env_file:
+      - .env.prod
     volumes:
       - glpi_files:/var/www/html/glpi/files
-    environment:
-      GLPI_DB_HOST:     glpi-db
-      GLPI_DB_NAME:     ${MYSQL_DATABASE}
-      GLPI_DB_USER:     ${MYSQL_USER}
-      GLPI_DB_PASSWORD: ${MYSQL_PASSWORD}
 
   glpi-bot:
-    image: docker.io/${DOCKERHUB_USERNAME}/glpi-bot:latest
+    image: ${REGISTRY:-docker.io}/${IMAGE_BOT:-youruser/glpi-bot}:latest
     container_name: glpi-bot
     restart: unless-stopped
     depends_on:
       - glpi-app
+    env_file:
+      - .env.prod
     ports:
-      - "8000:8000"      # health-check y endpoint /ping
-    environment:
-      BOT_TOKEN:        ${BOT_TOKEN}
-      GLPI_API_URL:     http://glpi-app/apirest.php
-      GLPI_APP_TOKEN:   ${GLPI_APP_TOKEN}
-      GLPI_USER_TOKEN:  ${GLPI_USER_TOKEN}
+      - "8000:8000"
 
 volumes:
   glpi_db_data:
   glpi_files:
-  glpi_public:  # si lo activas en el futuro
