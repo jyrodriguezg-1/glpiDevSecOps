@@ -37,6 +37,7 @@ RUN apt-get update \
       supervisor \
       unzip \
       git \
+      vim \
       php8.2-fpm \
       php8.2-cli \
       php8.2-mysql \
