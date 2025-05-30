@@ -24,8 +24,8 @@ RUN apt-get update && \
         php8.2-curl php8.2-bz2 php8.2-ldap php8.2-exif php8.2-opcache && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
     # Creamos el archivo con las directivas de seguridad
-RUN printf "session.cookie_httponly = 1\nsession.cookie_secure = 0\n" \
-      > /etc/php/8.2/fpm/conf.d/90-security.ini
+# RUN printf "session.cookie_httponly = 1\nsession.cookie_secure = 0\n" \
+#       > /etc/php/8.2/fpm/conf.d/90-security.ini
 
 ###############################################################################
 # 2 ▪︎ PHP-FPM – configuración mínima (sin CR/LF ni BOM)
