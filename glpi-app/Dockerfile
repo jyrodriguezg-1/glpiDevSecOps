@@ -21,8 +21,6 @@ RUN apt-get update \
  && add-apt-repository -y ppa:ondrej/php \
  && add-apt-repository -y ppa:ondrej/nginx \
  && apt-get update \
- && apt-get install -y --no-install-recommends \
-        nginx-full php8.2-fpm \
  && rm -rf /var/lib/apt/lists/*
 
 # Seguridad de sesión (sin secure mientras sea HTTP)
@@ -30,14 +28,31 @@ RUN printf "session.cookie_httponly = 1\nsession.cookie_secure = 0\n" \
       > /etc/php/8.2/fpm/conf.d/90-security.ini
 
 ###############################################################################
-# 2. PHP-FPM configuración mínima
+# 2. PHP-FPM – configuración mínima embebida
 ###############################################################################
-RUN mkdir -p /run/php
-COPY php-fpm.conf /etc/php/8.2/fpm/php-fpm.conf
-COPY www.conf     /etc/php/8.2/fpm/pool.d/www.conf
+RUN mkdir -p /run/php \
+ && cat >/etc/php/8.2/fpm/php-fpm.conf <<'EOF'
+[global]
+pid        = /run/php/php-fpm.pid
+error_log  = /proc/self/fd/2
+include    = /etc/php/8.2/fpm/pool.d/*.conf
+EOF
+
+RUN cat >/etc/php/8.2/fpm/pool.d/www.conf <<'EOF'
+[www]
+user            = www-data
+group           = www-data
+listen          = 9000
+pm              = dynamic
+pm.max_children = 10
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+catch_workers_output = yes
+EOF
 
 ###############################################################################
-# 3. Nginx – sitio por defecto 👍
+# 3. Nginx – eliminar sitio por defecto
 ###############################################################################
 RUN rm -f /etc/nginx/sites-enabled/default \
  && mkdir -p /var/lib/nginx/body \
@@ -62,6 +77,8 @@ RUN mkdir -p /var/www/html/glpi \
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY glpi.ini         /etc/supervisor/conf.d/glpi.ini
 COPY glpi.conf        /etc/nginx/conf.d/glpi.conf
+
+# Limpiar cualquier default restante
 RUN rm -f /etc/nginx/conf.d/default.conf
 
 # Asegurar carpeta de sesiones
@@ -71,4 +88,3 @@ RUN mkdir -p /var/lib/php/sessions \
 
 EXPOSE 80
 CMD ["/usr/bin/supervisord","-c","/etc/supervisor/supervisord.conf"]
-
