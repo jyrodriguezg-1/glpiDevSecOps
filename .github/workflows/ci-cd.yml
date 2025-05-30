@@ -85,12 +85,10 @@ jobs:
           gcloud compute ssh jyrodriguezg@${{ secrets.GCP_INSTANCE }} \
             --zone=${{ secrets.GCP_ZONE }} \
             --command="
+              eval "$(ssh-agent -s)"
+              ssh-add ~/clavessh
               cd ~/glpiDevSecOps
-              git fetch --all
-              git checkout master
-              git reset --hard origin/master
-              git clean -fd
-              cp .env.prod .env 2>/dev/null || true
+              git pull
               docker compose down
               docker compose build
               docker compose up -d
