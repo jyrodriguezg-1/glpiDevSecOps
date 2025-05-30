@@ -14,39 +14,24 @@ services:
       - glpi_db_data:/var/lib/mysql
 
   glpi-app:
-      image: docker.io/jyrodriguezg/glpi-app:latest
-      container_name: glpi-app
-      # no dependes ya del contexto local
-      ports:
-        - "8080:80"
-      volumes:
-        - glpi_files:/var/www/html/files
-      environment:
-        - GLPI_DB_HOST=glpi-db
-        - GLPI_DB_NAME=${MYSQL_DATABASE}
-        - GLPI_DB_USER=${MYSQL_USER}
-        - GLPI_DB_PASSWORD=${MYSQL_PASSWORD}
-
-
-  # glpi-app:
-  #   build:
-  #     context: ./glpi-app        # carpeta donde está el código
-  #     dockerfile: Dockerfile     # nombre del Dockerfile (por defecto)
-  #   container_name: glpi-app
-  #   depends_on:
-  #     - maria-db
-  #   ports:
-  #     - "8080:80"           # http://localhost:8080
-  #   volumes:
-  #     - glpi_files:/var/www/html/files
-  #    # - glpi_public:/var/www/html/glpi/public        ### ← nuevo volumen para /public
-  #    # - ./glpi-app/glpi.conf:/etc/nginx/conf.d/glpi.conf:ro ### ← monta tu glpi.conf only-read
+    build:
+      context: ./glpi-app        # carpeta donde está el código
+      dockerfile: Dockerfile     # nombre del Dockerfile (por defecto)
+    container_name: glpi-app
+    depends_on:
+      - maria-db
+    ports:
+      - "8080:80"           # http://localhost:8080
+    volumes:
+      - glpi_files:/var/www/html/files
+     # - glpi_public:/var/www/html/glpi/public        ### ← nuevo volumen para /public
+     # - ./glpi-app/glpi.conf:/etc/nginx/conf.d/glpi.conf:ro ### ← monta tu glpi.conf only-read
       
-  #   environment:
-  #     GLPI_DB_HOST:     glpi-db
-  #     GLPI_DB_NAME:     ${MYSQL_DATABASE}
-  #     GLPI_DB_USER:     ${MYSQL_USER}
-  #     GLPI_DB_PASSWORD: ${MYSQL_PASSWORD}
+    environment:
+      GLPI_DB_HOST:     glpi-db
+      GLPI_DB_NAME:     ${MYSQL_DATABASE}
+      GLPI_DB_USER:     ${MYSQL_USER}
+      GLPI_DB_PASSWORD: ${MYSQL_PASSWORD}
 
   glpi-bot:
     build:

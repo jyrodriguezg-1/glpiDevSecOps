@@ -1,123 +1,40 @@
-# # .github/workflows/ci-cd.yml
-# name: CI/CD – Build, Push & Deploy
-
-# # Asegúrate de que aquí vaya tu rama principal. 
-# # Si tu repo usa `main`, cámbialo a [main].
-# on:
-#   push:
-#     branches: [master]
-
-# jobs:
-#   build-and-push:
-#     runs-on: ubuntu-latest
-#     env:
-#       REGISTRY: docker.io
-
-#     steps:
-#       - name: Checkout repo
-#         uses: actions/checkout@v4
-
-#       # ─────────────────────────────────────────
-#       # 1. Definir IMAGE_DATE con la fecha actual
-#       # ─────────────────────────────────────────
-#       - name: Set image date
-#         run: echo "IMAGE_DATE=$(date +'%Y%m%d')" >> "$GITHUB_ENV"
-
-#       # ─────────────────────────────────────────
-#       # 2. Login a Docker Hub
-#       # ─────────────────────────────────────────
-#       - name: Login to Docker Hub
-#         uses: docker/login-action@v3
-#         with:
-#           username: ${{ secrets.DOCKERHUB_USERNAME }}
-#           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-#       # ─────────────────────────────────────────
-#       # 3. Construir y enviar cada imagen
-#       # ─────────────────────────────────────────
-#       - name: Build & push glpi-app
-#         uses: docker/build-push-action@v5
-#         with:
-#           context: ./glpi-app
-#           push: true
-#           tags: |
-#             ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-app:${{ env.IMAGE_DATE }}
-#             ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-app:latest
-
-#       - name: Build & push glpi-db
-#         uses: docker/build-push-action@v5
-#         with:
-#           context: ./glpi-db
-#           push: true
-#           tags: |
-#             ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-db:${{ env.IMAGE_DATE }}
-#             ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-db:latest
-
-#       - name: Build & push glpi-bot
-#         uses: docker/build-push-action@v5
-#         with:
-#           context: ./glpi-bot
-#           push: true
-#           tags: |
-#             ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot:${{ env.IMAGE_DATE }}
-#             ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot:latest
-
-#   deploy:
-#     needs: build-and-push      # <── debe ir indentado 4 espacios bajo 'deploy'
-#     runs-on: ubuntu-latest     # <── idem
-#     steps:
-#       - name: Checkout repo
-#         uses: actions/checkout@v4
-
-#       - name: Authenticate to GCP
-#         uses: google-github-actions/auth@v1
-#         with:
-#           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-
-#       - name: Set up Cloud SDK
-#         uses: google-github-actions/setup-gcloud@v2
-#         with:
-#           project_id: ${{ secrets.GCP_PROJECT }}
-#           install_components: 'gcloud'
-
-#       - name: Docker compose pull & up en VM
-#         run: |
-#           gcloud compute ssh jyrodriguezg@${{ secrets.GCP_INSTANCE }} \
-#             --zone=${{ secrets.GCP_ZONE }} \
-#             --command="
-#               cd /home/jyrodriguezg/glpiDevSecOps|| exit 1
-#               git pull
-#               cp .env.prod .env 2>/dev/null || true
-#               docker compose pull
-#               docker compose up -d --remove-orphans
-#             "
-
-
 # .github/workflows/ci-cd.yml
 name: CI/CD – Build, Push & Deploy
 
+# Asegúrate de que aquí vaya tu rama principal. 
+# Si tu repo usa `main`, cámbialo a [main].
 on:
   push:
     branches: [master]
 
-env:
-  REGISTRY: docker.io
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    env:
+      REGISTRY: docker.io
 
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # ─────────────────────────────────────────
+      # 1. Definir IMAGE_DATE con la fecha actual
+      # ─────────────────────────────────────────
       - name: Set image date
         run: echo "IMAGE_DATE=$(date +'%Y%m%d')" >> "$GITHUB_ENV"
 
+      # ─────────────────────────────────────────
+      # 2. Login a Docker Hub
+      # ─────────────────────────────────────────
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # ─────────────────────────────────────────
+      # 3. Construir y enviar cada imagen
+      # ─────────────────────────────────────────
       - name: Build & push glpi-app
         uses: docker/build-push-action@v5
         with:
@@ -127,13 +44,30 @@ jobs:
             ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-app:${{ env.IMAGE_DATE }}
             ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-app:latest
 
-      # … tus otros build & push …
+      - name: Build & push glpi-db
+        uses: docker/build-push-action@v5
+        with:
+          context: ./glpi-db
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-db:${{ env.IMAGE_DATE }}
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-db:latest
+
+      - name: Build & push glpi-bot
+        uses: docker/build-push-action@v5
+        with:
+          context: ./glpi-bot
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot:${{ env.IMAGE_DATE }}
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot:latest
 
   deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
+    needs: build-and-push      # <── debe ir indentado 4 espacios bajo 'deploy'
+    runs-on: ubuntu-latest     # <── idem
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v1
@@ -151,9 +85,10 @@ jobs:
           gcloud compute ssh jyrodriguezg@${{ secrets.GCP_INSTANCE }} \
             --zone=${{ secrets.GCP_ZONE }} \
             --command="
-              cd ~/glpiDevSecOps || exit 1
+              cd /home/jyrodriguezg/glpiDevSecOps|| exit 1
               git pull
               cp .env.prod .env 2>/dev/null || true
               docker compose pull
-              docker compose up -d --build --remove-orphans
+              docker compose up -d --remove-orphans
             "
+
