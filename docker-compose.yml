@@ -21,7 +21,7 @@ services:
     depends_on:
       - maria-db
     ports:
-      - "80:80"           # http://localhost:8080
+      - "80:80"           # http://localhost:80
     volumes:
       - glpi_files:/var/www/html/glpi/files
      # - glpi_public:/var/www/html/glpi/public        ### ← nuevo volumen para /public
