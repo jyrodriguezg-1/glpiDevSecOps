@@ -85,11 +85,11 @@ jobs:
           gcloud compute ssh jyrodriguezg@${{ secrets.GCP_INSTANCE }} \
             --zone=${{ secrets.GCP_ZONE }} \
             --command="
-              cd ~/glpiDevSecOps || exit 1
+              cd /glpiDevSecOps 
               git pull
               cp .env.prod .env 2>/dev/null || true
-              docker compose pull
               docker compose down
-              docker compose up -d --build --remove-orphans
+              docker compose build
+              docker compose up -d
             "
 
