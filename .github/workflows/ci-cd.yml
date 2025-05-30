@@ -1,3 +1,4 @@
+# .github/workflows/ci-cd.yml
 name: CI/CD – Build, Push & Deploy
 
 on:
@@ -6,21 +7,20 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_APP:   ${{ secrets.DOCKERHUB_USERNAME }}/glpi-app
-  IMAGE_DB:    ${{ secrets.DOCKERHUB_USERNAME }}/glpi-db
-  IMAGE_BOT:   ${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot
+  IMAGE_APP: ${{ secrets.DOCKERHUB_USERNAME }}/glpi-app
+  IMAGE_DB:  ${{ secrets.DOCKERHUB_USERNAME }}/glpi-db
+  IMAGE_BOT: ${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Set IMAGE_DATE
-        run: echo "IMAGE_DATE=$(date +'%Y%m%d')" >> "$GITHUB_ENV"
+        run: echo "IMAGE_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
 
-      - name: Log in to Docker Hub
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -56,7 +56,6 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-
     steps:
       - name: Authenticate with GCP
         uses: google-github-actions/auth@v1
@@ -73,11 +72,9 @@ jobs:
         run: |
           gcloud compute ssh jyrodriguezg@${{ secrets.GCP_INSTANCE }} \
             --zone=${{ secrets.GCP_ZONE }} \
-            --command "
-              set -e
+            --command="
               cd ~/glpiDevSecOps
-              git pull                          # ① Sincroniza docker-compose.yml, .env.prod, etc.
-              docker compose down               # ② Tira abajo contenedores (no borra volúmenes)
-              docker compose pull               # ③ Baja las imágenes actualizadas
+              docker compose down
+              docker compose pull
               docker compose up -d --remove-orphans
             "
