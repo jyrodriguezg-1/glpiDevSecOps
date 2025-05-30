@@ -87,5 +87,9 @@ COPY glpi.conf        /etc/nginx/conf.d/glpi.conf
 ###############################################################################
 # 6 ▪︎ Exponer puerto 80 y arrancar Supervisor con su conf explícita
 ###############################################################################
+# Aseguramos que exista la carpeta donde PHP guarda las sesiones
+RUN mkdir -p /var/lib/php/sessions \
+    && chown -R www-data:www-data /var/lib/php/sessions \
+    && chmod 770 /var/lib/php/sessions
 EXPOSE 80
 CMD ["/usr/bin/supervisord","-c","/etc/supervisor/supervisord.conf"]
