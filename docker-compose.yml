@@ -1,9 +1,9 @@
 #version: "3.8"
 
 services:
-  maria-db:
+  glpi-db:
     image: mariadb:lts
-    container_name: maria-db
+    container_name: glpi-db
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile     # nombre del Dockerfile (por defecto)
     container_name: glpi-app
     depends_on:
-      - maria-db
+      - glpi-db
     ports:
       - "8080:80"           # http://localhost:8080
     volumes:
