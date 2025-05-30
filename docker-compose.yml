@@ -23,7 +23,7 @@ services:
     ports:
       - "8080:80"           # http://localhost:8080
     volumes:
-      - glpi_files:/var/www/html/files
+      - glpi_files:/var/www/html/glpi/files
      # - glpi_public:/var/www/html/glpi/public        ### ← nuevo volumen para /public
      # - ./glpi-app/glpi.conf:/etc/nginx/conf.d/glpi.conf:ro ### ← monta tu glpi.conf only-read
       
