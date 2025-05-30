@@ -1,9 +1,9 @@
 #version: "3.8"
 
 services:
-  glpi-db:
+  maria-db:
     image: mariadb:lts
-    container_name: glpi-db
+    container_name: maria-db
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile     # nombre del Dockerfile (por defecto)
     container_name: glpi-app
     depends_on:
-      - glpi-db
+      - maria-db
     ports:
       - "8080:80"           # http://localhost:8080
     volumes:
@@ -28,7 +28,7 @@ services:
      # - ./glpi-app/glpi.conf:/etc/nginx/conf.d/glpi.conf:ro ### ← monta tu glpi.conf only-read
       
     environment:
-      GLPI_DB_HOST:     glpi-db
+      GLPI_DB_HOST:     maria-db
       GLPI_DB_NAME:     ${MYSQL_DATABASE}
       GLPI_DB_USER:     ${MYSQL_USER}
       GLPI_DB_PASSWORD: ${MYSQL_PASSWORD}
