@@ -1,8 +1,8 @@
-version: "3.8"
+#version: "3.8"
 
 services:
   glpi-db:
-    image: ${REGISTRY:-docker.io}/${IMAGE_DB:-youruser/glpi-db}:latest
+    image: ${REGISTRY:-docker.io}/${IMAGE_DB:-jyrodriguezg95/glpi-db}:latest
     container_name: glpi-db
     restart: unless-stopped
     environment:
@@ -14,7 +14,7 @@ services:
       - glpi_db_data:/var/lib/mysql
 
   glpi-app:
-    image: ${REGISTRY:-docker.io}/${IMAGE_APP:-youruser/glpi-app}:latest
+    image: ${REGISTRY:-docker.io}/${IMAGE_APP:-jyrodriguezg95/glpi-app}:latest
     container_name: glpi-app
     restart: unless-stopped
     depends_on:
@@ -22,18 +22,18 @@ services:
     ports:
       - "8080:80"
     env_file:
-      - .env.prod
+      - .env
     volumes:
       - glpi_files:/var/www/html/glpi/files
 
   glpi-bot:
-    image: ${REGISTRY:-docker.io}/${IMAGE_BOT:-youruser/glpi-bot}:latest
+    image: ${REGISTRY:-docker.io}/${IMAGE_BOT:-jyrodriguezg95/glpi-bot}:latest
     container_name: glpi-bot
     restart: unless-stopped
     depends_on:
       - glpi-app
     env_file:
-      - .env.prod
+      - .env
     ports:
       - "8000:8000"
 

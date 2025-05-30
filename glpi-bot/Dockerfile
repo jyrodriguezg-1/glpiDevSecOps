@@ -7,7 +7,8 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     GLPI_API_URL="" \
     GLPI_APP_TOKEN="" \
-    GLPI_USER_TOKEN=""
+    GLPI_USER_TOKEN="" \
+    BOT_TOKEN=""
 
 # ──────────────────────────────────────────────
 # 2. Dependencias
