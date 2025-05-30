@@ -1,9 +1,10 @@
-#version: "3.8"
+# docker-compose.yml
+version: "3.8"
 
 services:
-  maria-db:
-    image: mariadb:lts
-    container_name: maria-db
+  glpi-db:
+    image: docker.io/${DOCKERHUB_USERNAME}/glpi-db:latest
+    container_name: glpi-db
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -14,41 +15,35 @@ services:
       - glpi_db_data:/var/lib/mysql
 
   glpi-app:
-    build:
-      context: ./glpi-app        # carpeta donde está el código
-      dockerfile: Dockerfile     # nombre del Dockerfile (por defecto)
+    image: docker.io/${DOCKERHUB_USERNAME}/glpi-app:latest
     container_name: glpi-app
     depends_on:
-      - maria-db
+      - glpi-db
     ports:
-      - "8080:80"           # http://localhost:8080
+      - "8080:80"           # http://localhost:8080 (o en tu VM:80 si lo reenvías así)
     volumes:
       - glpi_files:/var/www/html/glpi/files
-     # - glpi_public:/var/www/html/glpi/public        ### ← nuevo volumen para /public
-     # - ./glpi-app/glpi.conf:/etc/nginx/conf.d/glpi.conf:ro ### ← monta tu glpi.conf only-read
-      
     environment:
-      GLPI_DB_HOST:     maria-db
+      GLPI_DB_HOST:     glpi-db
       GLPI_DB_NAME:     ${MYSQL_DATABASE}
       GLPI_DB_USER:     ${MYSQL_USER}
       GLPI_DB_PASSWORD: ${MYSQL_PASSWORD}
 
   glpi-bot:
-    build:
-      context: ./glpi-bot          # directorio donde tienes el Dockerfile del bot
+    image: docker.io/${DOCKERHUB_USERNAME}/glpi-bot:latest
     container_name: glpi-bot
     restart: unless-stopped
     depends_on:
       - glpi-app
+    ports:
+      - "8000:8000"      # health-check y endpoint /ping
     environment:
       BOT_TOKEN:        ${BOT_TOKEN}
-      GLPI_API_URL:     http://glpi-app/api
+      GLPI_API_URL:     http://glpi-app/apirest.php
       GLPI_APP_TOKEN:   ${GLPI_APP_TOKEN}
       GLPI_USER_TOKEN:  ${GLPI_USER_TOKEN}
-    ports:
-      - "8000:8000"      # FastAPI / Webhook opcional
 
 volumes:
   glpi_db_data:
   glpi_files:
-  glpi_public:    
+  glpi_public:  # si lo activas en el futuro

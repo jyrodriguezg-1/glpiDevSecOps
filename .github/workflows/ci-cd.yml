@@ -1,96 +1,86 @@
 # .github/workflows/ci-cd.yml
 name: CI/CD – Build, Push & Deploy
 
-# Asegúrate de que aquí vaya tu rama principal. 
-# Si tu repo usa `main`, cámbialo a [main].
 on:
   push:
     branches: [master]
 
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME_APP: ${{ secrets.DOCKERHUB_USERNAME }}/glpi-app
+  IMAGE_NAME_DB:  ${{ secrets.DOCKERHUB_USERNAME }}/glpi-db
+  IMAGE_NAME_BOT: ${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    env:
-      REGISTRY: docker.io
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # ─────────────────────────────────────────
-      # 1. Definir IMAGE_DATE con la fecha actual
-      # ─────────────────────────────────────────
-      - name: Set image date
+      - name: Set IMAGE_DATE
         run: echo "IMAGE_DATE=$(date +'%Y%m%d')" >> "$GITHUB_ENV"
 
-      # ─────────────────────────────────────────
-      # 2. Login a Docker Hub
-      # ─────────────────────────────────────────
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # ─────────────────────────────────────────
-      # 3. Construir y enviar cada imagen
-      # ─────────────────────────────────────────
-      - name: Build & push glpi-app
+      - name: Build & push app
         uses: docker/build-push-action@v5
         with:
           context: ./glpi-app
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-app:${{ env.IMAGE_DATE }}
-            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-app:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_APP }}:${{ env.IMAGE_DATE }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_APP }}:latest
 
-      - name: Build & push glpi-db
+      - name: Build & push db
         uses: docker/build-push-action@v5
         with:
           context: ./glpi-db
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-db:${{ env.IMAGE_DATE }}
-            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-db:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_DB }}:${{ env.IMAGE_DATE }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_DB }}:latest
 
-      - name: Build & push glpi-bot
+      - name: Build & push bot
         uses: docker/build-push-action@v5
         with:
           context: ./glpi-bot
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot:${{ env.IMAGE_DATE }}
-            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/glpi-bot:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BOT }}:${{ env.IMAGE_DATE }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BOT }}:latest
 
   deploy:
-    needs: build-and-push      
-    runs-on: ubuntu-latest     
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    needs: build-and-push
+    runs-on: ubuntu-latest
 
-      - name: Authenticate to GCP
+    steps:
+      - name: Authenticate with GCP
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
-      - name: Set up Cloud SDK
+      - name: Install gcloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT }}
-          install_components: 'gcloud'
+          install_components: gcloud
 
-      - name: Docker compose pull & up en VM
+      - name: Pull & restart on VM
         run: |
           gcloud compute ssh jyrodriguezg@${{ secrets.GCP_INSTANCE }} \
             --zone=${{ secrets.GCP_ZONE }} \
-            --command="
+            --command "
               cd ~/glpiDevSecOps
-              git pull
+              # actualiza tu .env.prod si cambias variables
               docker compose down
-              docker compose build
-              docker compose up -d
+              # baja las últimas imágenes que acabas de publicar
+              docker compose pull
+              # levanta todo de nuevo
+              docker compose up -d --remove-orphans
             "
-
-        # eval "$(ssh-agent -s)"
-        # ssh-add ~/clavessh
