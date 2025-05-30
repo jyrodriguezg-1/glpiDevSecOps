@@ -9,26 +9,55 @@ ENV DEBIAN_FRONTEND=noninteractive \
     GLPI_VERSION=10.0.18
 
 ###############################################################################
-# 1. Paquetes + PPA Ondřej + limpieza
+# 1) Instalamos transport HTTPS y herramientas básicas
 ###############################################################################
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-        gnupg curl ca-certificates lsb-release software-properties-common \
-        supervisor nginx-full unzip wget git \
-        php8.2-fpm php8.2-cli php8.2-mysql \
-        php8.2-intl php8.2-xml php8.2-gd php8.2-mbstring php8.2-zip \
-        php8.2-curl php8.2-bz2 php8.2-ldap php8.2-exif php8.2-opcache \
- && add-apt-repository -y ppa:ondrej/php \
- && add-apt-repository -y ppa:ondrej/nginx \
- && apt-get update \
+      apt-transport-https \
+      ca-certificates \
+      gnupg \
+      lsb-release \
+      software-properties-common \
+      curl \
+      wget \
  && rm -rf /var/lib/apt/lists/*
 
-# Seguridad de sesión (sin secure mientras sea HTTP)
+###############################################################################
+# 2) Añadimos los PPA de Ondřej para PHP y Nginx
+###############################################################################
+RUN add-apt-repository -y ppa:ondrej/php \
+ && add-apt-repository -y ppa:ondrej/nginx
+
+###############################################################################
+# 3) Instalamos Nginx, PHP-FPM, Supervisor y utilidades
+###############################################################################
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      nginx-full \
+      supervisor \
+      unzip \
+      git \
+      php8.2-fpm \
+      php8.2-cli \
+      php8.2-mysql \
+      php8.2-intl \
+      php8.2-xml \
+      php8.2-gd \
+      php8.2-mbstring \
+      php8.2-zip \
+      php8.2-curl \
+      php8.2-bz2 \
+      php8.2-ldap \
+      php8.2-exif \
+      php8.2-opcache \
+ && rm -rf /var/lib/apt/lists/*
+
+# Ajuste de seguridad de sesiones (HTTPS=0 para HTTP)
 RUN printf "session.cookie_httponly = 1\nsession.cookie_secure = 0\n" \
       > /etc/php/8.2/fpm/conf.d/90-security.ini
 
 ###############################################################################
-# 2. PHP-FPM – configuración mínima embebida
+# 4) Configuración embebida de PHP-FPM
 ###############################################################################
 RUN mkdir -p /run/php \
  && cat >/etc/php/8.2/fpm/php-fpm.conf <<'EOF'
@@ -52,14 +81,14 @@ catch_workers_output = yes
 EOF
 
 ###############################################################################
-# 3. Nginx – eliminar sitio por defecto
+# 5) Preparamos Nginx
 ###############################################################################
 RUN rm -f /etc/nginx/sites-enabled/default \
  && mkdir -p /var/lib/nginx/body \
  && chown -R www-data:www-data /var/lib/nginx
 
 ###############################################################################
-# 4. Descargar e instalar GLPI
+# 6) Descargamos e instalamos GLPI
 ###############################################################################
 RUN mkdir -p /var/www/html/glpi \
  && wget -q https://github.com/glpi-project/glpi/releases/download/${GLPI_VERSION}/glpi-${GLPI_VERSION}.tgz \
@@ -72,17 +101,14 @@ RUN mkdir -p /var/www/html/glpi \
  && find /var/www/html/glpi -type f -exec chmod 644 {} +
 
 ###############################################################################
-# 5. Copiar configs de Supervisor y Nginx
+# 7) Copiamos supervisord, ini y glpi.conf corregido
 ###############################################################################
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY glpi.ini         /etc/supervisor/conf.d/glpi.ini
 COPY glpi.conf        /etc/nginx/conf.d/glpi.conf
 
-# Limpiar cualquier default restante
-RUN rm -f /etc/nginx/conf.d/default.conf
-
-# Asegurar carpeta de sesiones
-RUN mkdir -p /var/lib/php/sessions \
+RUN rm -f /etc/nginx/conf.d/default.conf \
+ && mkdir -p /var/lib/php/sessions \
  && chown -R www-data:www-data /var/lib/php/sessions \
  && chmod 770 /var/lib/php/sessions
 
