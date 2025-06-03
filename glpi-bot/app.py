@@ -60,7 +60,7 @@ class TicketHandler(BaseHTTPRequestHandler):
         # ----------------------------------------------------------
         headers = {
             "App-Token":     GLPI_APP_TOKEN,
-            "User-Token": GLPI_USER_TOKEN,
+            "user-Token": GLPI_USER_TOKEN,
             "Content-Type":  "application/json"
         }
         payload = {
