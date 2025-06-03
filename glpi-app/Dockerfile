@@ -91,16 +91,24 @@ RUN rm -f /etc/nginx/sites-enabled/default \
 ###############################################################################
 # 6) Descargamos e instalamos GLPI
 ###############################################################################
+COPY glpi-10.0.18.tgz /tmp/glpi.tgz
+
 RUN mkdir -p /var/www/html/glpi \
- && wget -q https://github.com/glpi-project/glpi/releases/download/${GLPI_VERSION}/glpi-${GLPI_VERSION}.tgz \
-       -O /tmp/glpi.tgz \
  && tar -xzf /tmp/glpi.tgz -C /var/www/html/glpi --strip-components=1 \
  && rm /tmp/glpi.tgz \
- && chown -R www-data:www-data /var/www/html/glpi \
- && find /var/www/html/glpi/files /var/www/html/glpi/config /var/www/html/glpi/marketplace /var/www/html/glpi/plugins \
-       -type d -exec chmod 775 {} + \
+ && chown -R www-data:www-data /var/www/html/glpi/files /var/www/html/glpi/config /var/www/html/glpi/marketplace /var/www/html/glpi/plugins \
+ && find /var/www/html/glpi -type d -exec chmod 775 {} + \
  && find /var/www/html/glpi -type f -exec chmod 644 {} +
 
+# RUN mkdir -p /var/www/html/glpi \
+#  && wget -q https://github.com/glpi-project/glpi/releases/download/${GLPI_VERSION}/glpi-${GLPI_VERSION}.tgz \
+#        -O /tmp/glpi.tgz \
+#  && tar -xzf /tmp/glpi.tgz -C /var/www/html/glpi --strip-components=1 \
+#  && rm /tmp/glpi.tgz \
+#  && chown -R www-data:www-data /var/www/html/glpi \
+#  && find /var/www/html/glpi/files /var/www/html/glpi/config /var/www/html/glpi/marketplace /var/www/html/glpi/plugins \
+#        -type d -exec chmod 775 {} + \
+#  && find /var/www/html/glpi -type f -exec chmod 644 {} +
 ###############################################################################
 # 7) Copiamos supervisord, ini y glpi.conf corregido
 ###############################################################################
