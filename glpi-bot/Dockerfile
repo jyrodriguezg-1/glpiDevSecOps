@@ -31,4 +31,4 @@ EXPOSE 8000
 # --------------------------------------------------------------
 #  5) Comando por defecto: ejecutar directamente el servidor
 # --------------------------------------------------------------
-CMD ["python", "bot.py"]
+CMD ["python", "app.py"]
