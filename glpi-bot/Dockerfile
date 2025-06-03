@@ -1,27 +1,34 @@
-# glpi-bot/Dockerfile
-FROM python:3.12-slim
+# --------------------------------------------------------------
+#  → Imagen base ligera de Python
+# --------------------------------------------------------------
+FROM python:3.11-slim
 
-# ──────────────────────────────────────────────
-# 1. Variables de entorno (valores reales en .env)
-# ──────────────────────────────────────────────
-ENV PYTHONUNBUFFERED=1 \
-    GLPI_API_URL="" \
-    GLPI_APP_TOKEN="" \
-    GLPI_USER_TOKEN="" \
-    BOT_TOKEN=""
+# --------------------------------------------------------------
+#  1) Instalación de utilidades mínimas del sistema 
+# --------------------------------------------------------------
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# ──────────────────────────────────────────────
-# 2. Dependencias
-# ──────────────────────────────────────────────
-RUN pip install --no-cache-dir fastapi==0.110.2 "uvicorn[standard]"==0.29.0 requests==2.32.2 python-dotenv==1.0.1
-
-# ──────────────────────────────────────────────
-# 3. Copiar el código
-# ──────────────────────────────────────────────
+# --------------------------------------------------------------
+#  2) Definir directorio de trabajo y copiar requirements
+# --------------------------------------------------------------
 WORKDIR /app
-COPY app.py /app/app.py
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
+# --------------------------------------------------------------
+#  3) Copiar el código del bot
+# --------------------------------------------------------------
+COPY app.py .
+
+# --------------------------------------------------------------
+#  4) Exponer el puerto en el que escucharemos (8000)
+# --------------------------------------------------------------
 EXPOSE 8000
-VOLUME ["/app/logs"]
 
-CMD ["uvicorn", "app:api", "--host", "0.0.0.0", "--port", "8000"]
+# --------------------------------------------------------------
+#  5) Comando por defecto: ejecutar directamente el servidor
+# --------------------------------------------------------------
+CMD ["python", "bot.py"]

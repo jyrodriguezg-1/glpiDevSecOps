@@ -1,83 +1,128 @@
-# glpi-bot/app.py
-"""
-Pequeńa API REST que expone:
-  • GET  /ping          → health-check (200 OK)
-  • POST /ticket        → crea un ticket en GLPI vía REST
-
-Se asume que las variables de entorno:
-  GLPI_API_URL, GLPI_APP_TOKEN y GLPI_USER_TOKEN
-apuntan al endpoint REST de GLPI, token de aplicación y token de sesión.
-"""
-
-import logging
+#!/usr/bin/env python3
+import json
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
-from datetime import datetime
-
 import requests
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 
-# ──────────────────────────────────────────────
-# Configuración básica de logging
-# ──────────────────────────────────────────────
-log_file = os.getenv("BOT_LOG_FILE", "/app/logs/glpi-bot.log")
-logging.basicConfig(
-    filename=log_file,
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
+# --------------------------------------------------------------
+# 1) Variables de entorno necesarias
+# --------------------------------------------------------------
+# URL base de la API REST de GLPI (desde el contenedor "glpi-app")
+# Por defecto apunta a http://glpi-app/apirest.php, pero puedes revisarlo en tu docker-compose.
+GLPI_URL = os.getenv("GLPI_URL", "http://glpi-app/apirest.php")
 
-# ──────────────────────────────────────────────
-# FastAPI
-# ──────────────────────────────────────────────
-api = FastAPI(title="GLPI Bot", version="1.0")
+# App-Token y User-Token deben estar definidos en tu .env o en docker-compose.yml
+GLPI_APP_TOKEN  = os.getenv("GLPI_APP_TOKEN")
+GLPI_USER_TOKEN = os.getenv("GLPI_USER_TOKEN")
 
+# Puerto en el que este servidor escuchará (coincide con PORT en docker-compose)
+PORT = int(os.getenv("PORT", "8000"))
 
-class TicketIn(BaseModel):
-    titulo: str
-    descripcion: str
-    entidad_id: int | None = None  # Opcional: asignar a entidad
+# --------------------------------------------------------------
+# 2) Handler simple para el endpoint /ticket
+# --------------------------------------------------------------
+class TicketHandler(BaseHTTPRequestHandler):
+    def _send_json(self, code, payload):
+        """
+        Envía una respuesta JSON con el status code indicado.
+        """
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(payload).encode("utf-8"))
 
+    def do_POST(self):
+        # Sólo aceptamos POST a la ruta "/ticket"
+        if self.path != "/ticket":
+            self._send_json(404, {"detail": "Not Found"})
+            return
 
-def _get_headers() -> dict:
-    """Cabeceras requeridas por la API de GLPI"""
-    return {
-        "Content-Type": "application/json",
-        "App-Token": os.getenv("GLPI_APP_TOKEN", ""),
-        "Session-Token": os.getenv("GLPI_USER_TOKEN", ""),
-    }
+        # Leer el body
+        content_length = int(self.headers.get("Content-Length", 0))
+        raw_body = self.rfile.read(content_length)
 
+        # Intentar parsear JSON
+        try:
+            data = json.loads(raw_body)
+        except json.JSONDecodeError:
+            self._send_json(400, {"detail": "JSON inválido"})
+            return
 
-@api.get("/ping")
-def ping() -> dict:
-    """Endpoint de salud"""
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+        # Obtener "title" y "content"
+        title = data.get("title")
+        content = data.get("content")
+        if not title or not content:
+            self._send_json(400, {"detail": "'title' y 'content' son obligatorios"})
+            return
 
-
-@api.post("/ticket")
-def crear_ticket(payload: TicketIn) -> dict:
-    """Crea un ticket sencillo en GLPI"""
-    url_base = os.getenv("GLPI_API_URL")
-    if not url_base:
-        raise HTTPException(status_code=500, detail="GLPI_API_URL no configurada")
-
-    endpoint = f"{url_base.rstrip('/')}/Ticket"
-
-    data = {
-        "input": {
-            "name": payload.titulo,
-            "content": payload.descripcion,
-            **({"entities_id": payload.entidad_id} if payload.entidad_id else {}),
-            "status": 1,
+        # ----------------------------------------------------------
+        # 3) Llamada a la API REST de GLPI para crear el ticket
+        # ----------------------------------------------------------
+        headers = {
+            "App-Token":     GLPI_APP_TOKEN,
+            "Session-Token": GLPI_USER_TOKEN,
+            "Content-Type":  "application/json"
         }
-    }
+        payload = {
+            "input": {
+                "name":    title,
+                "content": content
+            }
+        }
+        try:
+            resp = requests.post(f"{GLPI_URL}/Ticket", headers=headers, json=payload)
+        except Exception as e:
+            # Si la petición HTTP falla (ej. no se conecta), devolvemos 500
+            self._send_json(500, {"detail": f"Error al conectar con GLPI: {str(e)}"})
+            return
 
+        # Si GLPI devolvió 201, parseamos el ID del ticket
+        if resp.status_code == 201:
+            try:
+                ticket_id = resp.json().get("id")
+            except ValueError:
+                # Si la respuesta de GLPI no es JSON
+                ticket_id = None
+
+            return self._send_json(201, {"ticket_id": ticket_id})
+
+        # Si GLPI devolvió otro código, devolvemos ese mismo código y el texto de error
+        try:
+            detalle_error = resp.json()
+        except ValueError:
+            detalle_error = resp.text
+
+        self._send_json(resp.status_code, {"detail": detalle_error})
+
+    # Opcional: podemos ignorar cualquier GET (devolver 404)
+    def do_GET(self):
+        self._send_json(404, {"detail": "Only POST allowed"})
+
+
+# --------------------------------------------------------------
+# 4) Función principal para arrancar el servidor
+# --------------------------------------------------------------
+def run():
+    server_address = ("", PORT)
+    httpd = HTTPServer(server_address, TicketHandler)
+    print(f"[+] Servidor HTTP escuchando en el puerto {PORT}", flush=True)
     try:
-        r = requests.post(endpoint, json=data, headers=_get_headers(), timeout=15)
-        r.raise_for_status()
-        ticket_id = r.json().get("id")
-        logging.info("Ticket creado: %s", ticket_id)
-        return {"ticket_id": ticket_id}
-    except requests.RequestException as exc:
-        logging.exception("Error al crear ticket: %s", exc)
-        raise HTTPException(status_code=502, detail="Error al comunicarse con GLPI")
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\n[-] Servidor detenido manualmente", flush=True)
+        httpd.server_close()
+
+
+if __name__ == "__main__":
+    # Validar que estén definidas las variables de entorno mínimas
+    missing = []
+    if not GLPI_APP_TOKEN:
+        missing.append("GLPI_APP_TOKEN")
+    if not GLPI_USER_TOKEN:
+        missing.append("GLPI_USER_TOKEN")
+    if missing:
+        print(f"[!] ERROR: faltan variables de entorno: {', '.join(missing)}")
+        print("    Asegúrate de definirlas en tu docker-compose.yml o .env antes de correr este contenedor.")
+        exit(1)
+
+    run()
